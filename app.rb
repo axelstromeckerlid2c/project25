@@ -7,3 +7,11 @@ require 'sinatra/reloader'
 get('/') do
     slim(:main)
 end
+
+get('/create') do
+    slim(:create)
+end
+
+get('/profile') do
+    slim(:profile)
+end

@@ -10,3 +10,9 @@ nav {
     justify-content:space-around;
     align-items:center;
   }
+
+.post {
+    background-color: green;
+    width: 200px;
+    height: 200px;
+}
