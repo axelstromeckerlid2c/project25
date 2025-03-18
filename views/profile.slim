@@ -1,5 +1,26 @@
-h1 Hej (ditt namn)
+h1 Hej #{session[:username]}
+h2 Skapa konto:
+form action="users/new" method="POST"
+    input type="text" name="username" placeholder="Enter username"
+    input type="password" name="password" placeholder="Enter password"
+    input type="password" name="password_confirm" placeholder="Enter password again"
+    input type="submit" value="registrera ny användare"/
 
-h2 Gillade objekt 
+h2 Logga in 
+form action="login" method="POST"
+    input type="text" name="username" placeholder="Enter username"
+    input type="password" name="password" placeholder="Enter password"
+    input type="submit" value="logga in"
+
+h2 Gillade objekt
+- saved_listings.each do |todo|
+        section class='post'
+            - listing = listings.find {|listing| listing["id"] == todo["user_id"]}
+            p = todo["listing_id"]
+
 
 h2 Dina objekt
+
+- listings.each do |todo|
+    section class='post'
+        p = todo["title"]

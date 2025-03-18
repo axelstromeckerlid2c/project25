@@ -1,13 +1,10 @@
-
-
-
 h1 Välkommen till marketplace
 
-
-section 
+- listings.each do |todo|
     section class='post'
-        img src="" alt=""/
-        h2 hejej
-    section class='post'
-        img src="" alt=""/
-        h2 fredfg
+        - user = users.find {|user| user["id"] == todo["user_id"]}
+        p = todo["title"]
+        p = user["username"]
+        form action="/save_listing" method="post"
+            input type="hidden" name="listing_id" value="#{todo["id"]}"
+            input type="submit" name="submit" value="gilla inlägget"
