@@ -2,9 +2,20 @@ h1 Välkommen till marketplace
 
 - listings.each do |todo|
     section class='post'
-        - user = users.find {|user| user["id"] == todo["user_id"]}
+
         p = todo["title"]
-        p = user["username"]
-        form action="/save_listing" method="post"
-            input type="hidden" name="listing_id" value="#{todo["id"]}"
-            input type="submit" name="submit" value="gilla inlägget"
+        p = todo["username"]
+        - if saved_listings.include?(todo["id"])
+            form action="/unsave_listing" method="post"
+                input type="hidden" name="listing_id" value=todo["id"]
+                input type="hidden" name="current_page" value="main"
+                button type="submit" Ångra gilla
+        - else
+            form action="/save_listing" method="post"
+                input type="hidden" name="listing_id" value=todo["id"]
+                button type="submit" Gilla inlägget
+        - if session[:admin] == 2
+            form action="/listing/delete" method="post"
+                input type="hidden" name="listing_id" value=todo["id"]
+                button type="submit" Radera inlägg
+            

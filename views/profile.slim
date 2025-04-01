@@ -1,22 +1,31 @@
-h1 Hej #{session[:username]}
-h2 Skapa konto:
-form action="users/new" method="POST"
-    input type="text" name="username" placeholder="Enter username"
-    input type="password" name="password" placeholder="Enter password"
-    input type="password" name="password_confirm" placeholder="Enter password again"
-    input type="submit" value="registrera ny användare"/
 
-h2 Logga in 
-form action="login" method="POST"
-    input type="text" name="username" placeholder="Enter username"
-    input type="password" name="password" placeholder="Enter password"
-    input type="submit" value="logga in"
+- if session[:id]==nil
+    h2 Skapa konto:
+    form action="users/new" method="POST"
+        input type="text" name="username" placeholder="Enter username"
+        input type="password" name="password" placeholder="Enter password"
+        input type="password" name="password_confirm" placeholder="Enter password again"
+        input type="submit" value="registrera ny användare"/
+
+    h2 Logga in 
+    form action="login" method="POST"
+        input type="text" name="username" placeholder="Enter username"
+        input type="password" name="password" placeholder="Enter password"
+        input type="submit" value="logga in"
+- else
+    h1 Hej #{session[:username]}
+    form action="logout" method="POST"
+        input type="submit" value="logga ut"
 
 h2 Gillade objekt
 - saved_listings.each do |todo|
         section class='post'
-            - listing = listings.find {|listing| listing["id"] == todo["user_id"]}
-            p = todo["listing_id"]
+            - listing = listings.find {|listing| listing["id"] == todo["listing_id"]}
+            p = todo["title"]
+            //form action="/unsave_listing" method="post"
+                input type="hidden" name="id" value=todo["listing_id"]
+                input type="hidden" name="current_page" value="main"
+                button type="submit" Ångra gilla
 
 
 h2 Dina objekt
@@ -24,3 +33,9 @@ h2 Dina objekt
 - listings.each do |todo|
     section class='post'
         p = todo["title"]
+        form action="/listing/delete" method="post"
+            input type="hidden" name="listing_id" value=todo["id"]
+            button type="submit" Radera inlägg
+        form action="/listing/update" method="post"
+            input type="text" name="listing_id" placeholder="Ny titel" value=todo["id"]
+            button type="submit" Uppdatera inlägg
