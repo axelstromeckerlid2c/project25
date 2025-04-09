@@ -12,6 +12,10 @@
         input type="text" name="username" placeholder="Enter username"
         input type="password" name="password" placeholder="Enter password"
         input type="submit" value="logga in"
+    - if flash[:login_error]
+        p = flash[:login_error]
+    - if flash[:password_error]
+        p = flash[:password_error]
 - else
     h1 Hej #{session[:username]}
     form action="logout" method="POST"
@@ -33,9 +37,7 @@ h2 Dina objekt
 - listings.each do |todo|
     section class='post'
         p = todo["title"]
-        form action="/listing/delete" method="post"
+        form action="/listing/#{todo['id']}/delete" method="post"
             input type="hidden" name="listing_id" value=todo["id"]
             button type="submit" Radera inlägg
-        form action="/listing/update" method="post"
-            input type="text" name="listing_id" placeholder="Ny titel" value=todo["id"]
-            button type="submit" Uppdatera inlägg
+        a href="/listing/#{todo['id']}/edit" uppdatera inlägg

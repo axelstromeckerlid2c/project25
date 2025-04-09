@@ -3,150 +3,179 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
+require 'sinatra/flash'
+require_relative './model.rb'
 
 enable :sessions
 
+include Model
+
+##
+# Renders the start page.
+#
+# @return [String] the rendered Slim template for the start page.
 get('/') do
-    db = SQLite3::Database.new('db/todo2021.db')
-    db.results_as_hash = true
-    listings = db.execute("SELECT * FROM listings")
-    saved_listings = []
-    if session[:id]
-      saved_listings = db.execute("SELECT listing_id FROM saved_listings WHERE user_id = ?", session[:id])
-    end
-    slim(:main, locals:{listings: listings, saved_listings: saved_listings.map { |sl| sl['listing_id'] }})
+  slim(:start)
 end
 
+##
+# Displays the listing index page.
+#
+# @return [String] the rendered Slim template for the listing index page.
+get('/listing/index') do
+  user_id = session[:id]
+  listing_index(user_id)
+end
+
+##
+# Renders the error page.
+#
+# @return [String] the rendered Slim template for the error page.
 get('/error') do
-    slim(:error)
+  slim(:error)
 end
 
+##
+# Saves a listing for the logged-in user.
+#
+# @param [Integer] listing_id the ID of the listing to save.
+# @param [Integer] user_id the ID of the logged-in user.
+# @return [void]
 post('/save_listing') do
   listing_id = params[:listing_id]
   user_id = session[:id]
 
   if user_id.nil?
-      redirect('/login')
+    flash[:user_guest] = "Du måste vara inloggad för denna tjänst."
+    redirect('/listing/index')
   else
-      db = SQLite3::Database.new('db/todo2021.db')
-      db.execute("INSERT INTO saved_listings (user_id, listing_id) VALUES (?, ?)", [user_id, listing_id])
-      redirect('/')
+    save_listing(listing_id, user_id)
+    redirect('/listing/index')
   end
 end
 
+##
+# Unsaves a listing for the logged-in user.
+#
+# @param [Integer] listing_id the ID of the listing to unsave.
+# @param [Integer] user_id the ID of the logged-in user.
+# @param [String] current_page the page to redirect to after unsaving.
+# @return [void]
 post('/unsave_listing') do
-    listing_id = params[:listing_id]
-    user_id = session[:id]
-    current_page = params[:current_page]
-    p session[:admin]
-    if user_id.nil?
-        redirect('/login')
-    else
-        db = SQLite3::Database.new('db/todo2021.db')
-        db.execute("DELETE FROM saved_listings WHERE user_id = ? AND listing_id = ?", [user_id, listing_id])
-        if current_page == 'profile'
-          redirect('/profile')
-        else
-          redirect('/')
-        end
-    end
-end
-
-before ('/create') do
-  #Se tex om användare är inloggad
-  if session[:id] == nil
-    redirect to ('/error')
-  end
-end
-
-get('/create') do
-    slim(:"/create")
-end
-
-post('/listing/new') do
-    title = params[:title]
-    id = session[:id].to_i
-    db = SQLite3::Database.new('db/todo2021.db')
-    db.execute("INSERT INTO listings (title, user_id) VALUES (?, ?)", [title, id])
-    redirect('create')
-end
-
-get('/profile') do
-    id = session[:id].to_i
-    name = session[:username]
-    db = SQLite3::Database.new('db/todo2021.db')
-    db.results_as_hash = true
-    saved_listings = db.execute("SELECT listings.id AS listing_id, listings.title FROM saved_listings JOIN listings ON saved_listings.listing_id = listings.id WHERE saved_listings.user_id = ?", id)
-    listings = db.execute("SELECT * FROM listings WHERE user_id = ?", id)
-    slim(:profile, locals:{listings:listings, saved_listings:saved_listings})
-end
-
-post('/listing/delete') do
-    listing_id = params[:listing_id]
-    user_id = session[:id]
-    db = SQLite3::Database.new('db/todo2021.db')
-    owner = db.execute("SELECT user_id FROM listings WHERE id=?", listing_id).first.first
-    if owner == user_id or session[:admin] == 2
-      db.execute("DELETE FROM listings WHERE id = ?", listing_id)
-    else
-      redirect to ('/error')
-    end
-
-    #Ta med koll om user_id stämmer innan du tar bort. Säkerhet före allt.
-
-    redirect('/profile')
-end
-
-post('/listing/delete') do
   listing_id = params[:listing_id]
   user_id = session[:id]
-  db = SQLite3::Database.new('db/todo2021.db')
-  owner = db.execute("SELECT user_id FROM listings WHERE id=?", listing_id).first.first
-  if owner == user_id or session[:admin] == 2
-    db.execute("DELETE FROM listings WHERE id = ?", listing_id)
-  else
-    redirect to ('/error')
+  current_page = params[:current_page]
+  unsave_listing(listing_id, user_id, current_page)
+end
+
+##
+# Ensures the user is logged in before accessing the new listing page.
+#
+# @return [void]
+before('/listing/new') do
+  if session[:id].nil?
+    redirect to('/error')
   end
+end
 
-  #Ta med koll om user_id stämmer innan du tar bort. Säkerhet före allt.
+##
+# Renders the new listing page.
+#
+# @return [String] the rendered Slim template for the new listing page.
+get('/listing/new') do
+  slim(:"/listing/new")
+end
 
+##
+# Creates a new listing for the logged-in user.
+#
+# @param [String] title the title of the new listing.
+# @param [Integer] id the ID of the logged-in user.
+# @return [void]
+post('/listing/new') do
+  title = params[:title]
+  id = session[:id].to_i
+  new_listing(title, id)
+  redirect('/listing/new')
+end
+
+##
+# Displays the profile page for the logged-in user.
+#
+# @return [String] the rendered Slim template for the profile page.
+get('/profile') do
+  id = session[:id].to_i
+  name = session[:username]
+  user_profile(id, name)
+end
+
+##
+# Deletes a listing created by the logged-in user.
+#
+# @param [Integer] listing_id the ID of the listing to delete.
+# @param [Integer] user_id the ID of the logged-in user.
+# @return [void]
+post('/listing/:id/delete') do
+  listing_id = params[:listing_id]
+  user_id = session[:id]
+  delete_listing(listing_id, user_id)
   redirect('/profile')
 end
 
-post('/users/new') do
-    username = params[:username]
-    password = params[:password]
-    password_confirm = params[:password_confirm]
-    if (password == password_confirm)
-      password_digest = BCrypt::Password.create(password)
-      db = SQLite3::Database.new('db/todo2021.db')
-      db.execute("INSERT INTO users (username, pwdigest, admin) VALUES (?, ?, ?)", [username, password_digest, 1])
-      redirect('/')
-    else
-      "lösenorden matchade inte"
-    end
+##
+# Renders the edit listing page.
+#
+# @param [Integer] listing_id the ID of the listing to edit.
+# @return [String] the rendered Slim template for the edit listing page.
+get('/listing/:id/edit') do
+  listing_id = params[:id].to_i
+  edit_listing(listing_id)
 end
 
+##
+# Updates a listing created by the logged-in user.
+#
+# @param [Integer] listing_id the ID of the listing to update.
+# @param [String] title the new title for the listing.
+# @return [void]
+post('/listing/:id/update') do
+  listing_id = params[:id].to_i
+  title = params[:title]
+  update_listing(listing_id, title)
+  redirect('/profile')
+end
+
+##
+# Logs in a user.
+#
+# @param [String] username the username of the user.
+# @param [String] password the password of the user.
+# @return [void]
 post('/login') do
-    username = params[:username]
-    password = params[:password]
-    db = SQLite3::Database.new('db/todo2021.db')
-    db.results_as_hash = true
-    result = db.execute("SELECT * FROM users WHERE username = ?", username).first
-    pwdigest = result["pwdigest"]
-    id = result["id"]
-    admin = result["admin"]
-    if BCrypt::Password.new(pwdigest) == password
-      session[:id] = id
-      session[:admin] = admin
-      session[:username] = username
-      redirect('/profile')
-    else
-      "FEL LÖSENORD"
-    end
+  username = params[:username]
+  password = params[:password]
+  login(username, password)
 end
 
+##
+# Registers a new user.
+#
+# @param [String] username the username of the new user.
+# @param [String] password the password of the new user.
+# @param [String] password_confirm the password confirmation.
+# @return [void]
+post('/users/new') do
+  username = params[:username]
+  password = params[:password]
+  password_confirm = params[:password_confirm]
+  register_user(username, password, password_confirm)
+end
+
+##
+# Logs out the current user.
+#
+# @return [void]
 post('/logout') do
-    session.clear
-    redirect('/profile')
+  session.clear
+  redirect('/profile')
 end
